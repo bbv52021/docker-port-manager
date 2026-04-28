@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Port Manager - 端口转发管理</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                    <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                    <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+                <span>DPM</span>
+            </div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>仪表盘</span>
+            </a>
+            <a href="#" class="nav-item" data-page="rules" onclick="switchPage('rules')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                <span>转发规则</span>
+            </a>
+            <a href="#" class="nav-item" data-page="ports" onclick="switchPage('ports')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                <span>端口状态</span>
+            </a>
+            <a href="#" class="nav-item" data-page="network" onclick="switchPage('network')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                <span>网络工具</span>
+            </a>
+            <a href="#" class="nav-item" data-page="containers" onclick="switchPage('containers')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                <span>容器列表</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="system-status" id="systemStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">检测中...</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <header class="top-bar">
+            <h1 id="pageTitle">仪表盘</h1>
+            <div class="top-actions">
+                <button class="btn btn-primary" onclick="showCreateRuleModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    新建规则
+                </button>
+                <button class="btn btn-secondary" onclick="refreshCurrentPage()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    刷新
+                </button>
+            </div>
+        </header>
+
+        <!-- 仪表盘页面 -->
+        <div class="page active" id="page-dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statContainers">-</span>
+                        <span class="stat-label">运行容器</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statRules">-</span>
+                        <span class="stat-label">转发规则</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statPorts">-</span>
+                        <span class="stat-label">已用端口</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="statVersion">-</span>
+                        <span class="stat-label">Docker 版本</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>转发规则列表</h3>
+                    </div>
+                    <div class="card-body" id="dashboardRules">
+                        <p class="empty-text">加载中...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>端口使用概览</h3>
+                    </div>
+                    <div class="card-body" id="dashboardPorts">
+                        <p class="empty-text">加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 转发规则页面 -->
+        <div class="page" id="page-rules">
+            <div class="card">
+                <div class="card-header">
+                    <h3>端口转发规则</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showCreateRuleModal()">+ 新建规则</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table class="data-table" id="rulesTable">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>监听端口</th>
+                                    <th>目标地址</th>
+                                    <th>协议</th>
+                                    <th>状态</th>
+                                    <th>描述</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rulesBody">
+                                <tr><td colspan="7" class="empty-text">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 端口状态页面 -->
+        <div class="page" id="page-ports">
+            <div class="card">
+                <div class="card-header">
+                    <h3>端口使用状态</h3>
+                    <div class="card-actions">
+                        <input type="number" class="input-sm" id="checkPortInput" placeholder="检查端口..." min="1" max="65535">
+                        <button class="btn btn-sm btn-secondary" onclick="checkSpecificPort()">检查</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>宿主机端口</th>
+                                    <th>容器端口</th>
+                                    <th>容器名称</th>
+                                    <th>绑定 IP</th>
+                                    <th>类型</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portsBody">
+                                <tr><td colspan="5" class="empty-text">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 网络工具页面 -->
+        <div class="page" id="page-network">
+            <div class="tools-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Ping 测试</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>目标地址</label>
+                            <input type="text" id="pingHost" class="form-input" placeholder="例如: 192.168.1.1 或 google.com">
+                        </div>
+                        <div class="form-group">
+                            <label>次数</label>
+                            <input type="number" id="pingCount" class="form-input" value="4" min="1" max="20">
+                        </div>
+                        <button class="btn btn-primary" onclick="runPing()" id="pingBtn">开始 Ping</button>
+                        <pre class="output-box" id="pingOutput"></pre>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>端口连通性测试</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>目标地址</label>
+                            <input type="text" id="portTestHost" class="form-input" placeholder="例如: 192.168.1.100">
+                        </div>
+                        <div class="form-group">
+                            <label>端口号</label>
+                            <input type="number" id="portTestPort" class="form-input" placeholder="例如: 3389" min="1" max="65535">
+                        </div>
+                        <button class="btn btn-primary" onclick="runPortTest()" id="portTestBtn">测试端口</button>
+                        <div class="output-box" id="portTestOutput"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>DNS 解析</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>域名</label>
+                            <input type="text" id="dnsHost" class="form-input" placeholder="例如: google.com">
+                        </div>
+                        <button class="btn btn-primary" onclick="runDnsResolve()" id="dnsBtn">解析</button>
+                        <div class="output-box" id="dnsOutput"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 容器列表页面 -->
+        <div class="page" id="page-containers">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Docker 容器列表</h3>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="showAllContainers" onchange="loadContainers()">
+                        显示已停止的容器
+                    </label>
+                </div>
+                <div class="card-body">
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>镜像</th>
+                                    <th>状态</th>
+                                    <th>端口映射</th>
+                                    <th>ID</th>
+                                </tr>
+                            </thead>
+                            <tbody id="containersBody">
+                                <tr><td colspan="5" class="empty-text">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 新建规则弹窗 -->
+    <div class="modal-overlay" id="createRuleModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>新建端口转发规则</h2>
+                <button class="modal-close" onclick="closeCreateRuleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>快捷模板</label>
+                    <select class="form-input" id="presetSelect" onchange="applyPreset()">
+                        <option value="">-- 自定义 --</option>
+                        <option value="rdp">远程桌面 (RDP) - 3389</option>
+                        <option value="ssh">SSH - 22</option>
+                        <option value="vnc">VNC - 5900</option>
+                        <option value="http">HTTP - 80</option>
+                        <option value="https">HTTPS - 443</option>
+                        <option value="smb">SMB/CIFS - 445</option>
+                        <option value="ftp">FTP - 21</option>
+                        <option value="mysql">MySQL - 3306</option>
+                        <option value="postgresql">PostgreSQL - 5432</option>
+                        <option value="redis">Redis - 6379</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>规则名称 <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="ruleName" placeholder="例如: my-rdp-forward">
+                    <small class="form-hint">只能包含字母、数字、下划线和连字符</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>监听端口 <span class="required">*</span></label>
+                        <input type="number" class="form-input" id="listenPort" placeholder="例如: 3389" min="1" max="65535">
+                    </div>
+                    <div class="form-group">
+                        <label>协议</label>
+                        <select class="form-input" id="ruleProtocol">
+                            <option value="tcp">TCP</option>
+                            <option value="udp">UDP</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>目标地址 <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="targetHost" placeholder="例如: 192.168.1.100">
+                    </div>
+                    <div class="form-group">
+                        <label>目标端口 <span class="required">*</span></label>
+                        <input type="number" class="form-input" id="targetPort" placeholder="例如: 3389" min="1" max="65535">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <input type="text" class="form-input" id="ruleDescription" placeholder="例如: 远程桌面到办公室电脑">
+                </div>
+                <div class="port-check-result" id="portCheckResult"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateRuleModal()">取消</button>
+                <button class="btn btn-primary" onclick="createRule()" id="createRuleBtn">创建规则</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日志弹窗 -->
+    <div class="modal-overlay" id="logModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2 id="logModalTitle">容器日志</h2>
+                <button class="modal-close" onclick="closeLogModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre class="log-box" id="logContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

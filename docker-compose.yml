@@ -1,0 +1,12 @@
+services:
+  docker-port-manager:
+    build: .
+    image: docker-port-manager:latest
+    container_name: docker-port-manager
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/app/data
+    environment:
+      - TZ=Asia/Shanghai
