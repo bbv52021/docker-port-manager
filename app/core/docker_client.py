@@ -21,10 +21,16 @@ class DockerClient:
     def _connect(self):
         """连接 Docker Engine"""
         try:
-            self.client = docker.DockerClient(
-                base_url=f"unix://{self.socket_path}",
-                timeout=10
-            )
+            # 优先使用环境变量 DOCKER_HOST，其次使用 socket 路径
+            import os
+            docker_host = os.environ.get("DOCKER_HOST")
+            if docker_host:
+                self.client = docker.DockerClient(
+                    base_url=docker_host,
+                    timeout=10
+                )
+            else:
+                self.client = docker.from_env(timeout=10)
             self.client.ping()
             logger.info("成功连接到 Docker Engine")
         except docker.errors.DockerException as e:
