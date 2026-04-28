@@ -23,11 +23,31 @@
 
 ### 方式一：Docker Compose（推荐）
 
-```bash
-git clone https://github.com/your-username/docker-port-manager.git
-cd docker-port-manager
-docker compose up -d
-```
+1. **创建目录**
+   ```bash
+   mkdir -p /volume1/docker/dpm/data
+   cd /volume1/docker/dpm
+   ```
+
+2. **创建 docker-compose.yml**
+   ```yaml
+   services:
+     docker-port-manager:
+       image: ghcr.io/bbv52021/docker-port-manager:latest
+       container_name: docker-port-manager
+       restart: unless-stopped
+       network_mode: host
+       volumes:
+         - /var/run/docker.sock:/var/run/docker.sock:ro
+         - /volume1/docker/dpm/data:/app/data
+       environment:
+         - TZ=Asia/Shanghai
+   ```
+
+3. **启动**
+   ```bash
+   docker compose up -d
+   ```
 
 ### 方式二：Docker 命令
 
@@ -35,40 +55,45 @@ docker compose up -d
 docker run -d \
     --name docker-port-manager \
     --restart unless-stopped \
-    -p 5800:5800 \
+    --network host \
     -v /var/run/docker.sock:/var/run/docker.sock:ro \
-    -v ./data:/app/data \
+    -v /volume1/docker/dpm/data:/app/data \
     -e TZ=Asia/Shanghai \
-    docker-port-manager:latest
-```
-
-### 方式三：脚本启动
-
-```bash
-git clone https://github.com/your-username/docker-port-manager.git
-cd docker-port-manager
-chmod +x scripts/*.sh
-./scripts/start.sh
+    ghcr.io/bbv52021/docker-port-manager:latest
 ```
 
 启动后访问 **http://群晖IP:5800** 即可使用。
 
 ## 群晖安装指南
 
+### 通过 SSH 安装
+
 1. **开启 SSH**：控制面板 → 终端机和 SNMP → 勾选"启动 SSH 功能"
 2. **SSH 登录群晖**：
    ```bash
    ssh admin@群晖IP
-   sudo -i  # 切换到 root
+   sudo -i
    ```
-3. **下载并启动**：
+3. **创建目录并启动**：
    ```bash
-   cd /volume1/docker/
-   git clone https://github.com/your-username/docker-port-manager.git
-   cd docker-port-manager
+   mkdir -p /volume1/docker/dpm/data
+   cd /volume1/docker/dpm
+   ```
+   将上面的 docker-compose.yml 内容保存到该目录，然后：
+   ```bash
    docker compose up -d
    ```
 4. **访问**：浏览器打开 `http://群晖IP:5800`
+
+### 通过群晖 Container Manager 安装
+
+1. 打开 **Container Manager → 项目**
+2. 点击 **创建**
+3. 项目名称填 `dpm`，路径选 `/volume1/docker/dpm`
+4. 将上面的 docker-compose.yml 内容粘贴进去
+5. 点击 **完成**
+
+> **注意**：如果拉取镜像超时，可能是网络问题，请配置 Docker 镜像加速器或使用代理。
 
 ## 使用方法
 
@@ -109,6 +134,8 @@ docker-port-manager/
 │   │   └── js/app.js        # 前端逻辑
 │   └── templates/
 │       └── index.html       # 主页面
+├── .github/workflows/
+│   └── docker-build.yml     # 自动构建镜像
 ├── scripts/
 │   ├── start.sh             # 启动脚本
 │   └── stop.sh              # 停止脚本
@@ -145,6 +172,7 @@ docker-port-manager/
 - **前端**：原生 HTML/CSS/JavaScript（无框架依赖）
 - **转发引擎**：alpine/socat 容器
 - **部署**：Docker + Docker Compose
+- **CI/CD**：GitHub Actions 自动构建镜像
 
 ## 配置说明
 
@@ -155,14 +183,15 @@ docker-port-manager/
 | WEB_PORT | 5800 | Web 管理界面端口 |
 | DOCKER_SOCKET | /var/run/docker.sock | Docker Socket 路径 |
 | FORWARD_IMAGE | alpine/socat:latest | 转发容器镜像 |
-| FORWARD_NETWORK | bridge | 容器网络模式 |
+| FORWARD_NETWORK | host | 容器网络模式（推荐 host） |
 
 ## 注意事项
 
 - 本工具需要挂载 `/var/run/docker.sock`，请确保安全
-- 转发容器默认使用 `bridge` 网络模式，如需转发到宿主机网络请改为 `host`
+- 转发容器默认使用 `host` 网络模式，端口直接绑定宿主机
 - 建议配合强密码使用，避免暴露在公网
 - 删除规则会同时删除对应的 Docker 容器
+- 如果拉取镜像超时，请配置 Docker 镜像加速器
 
 ## 许可证
 
