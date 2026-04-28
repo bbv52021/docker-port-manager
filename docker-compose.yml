@@ -1,12 +1,13 @@
+# 方式一：从 GitHub 拉取代码并本地构建
 services:
   docker-port-manager:
-    build: .
+    build: https://github.com/bbv52021/docker-port-manager.git
     image: docker-port-manager:latest
     container_name: docker-port-manager
     restart: unless-stopped
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./data:/app/data
+      - /volume1/docker/dpm/data:/app/data
     environment:
       - TZ=Asia/Shanghai
