@@ -1,8 +1,6 @@
-# 方式一：从 GitHub 拉取代码并本地构建
 services:
   docker-port-manager:
-    build: https://github.com/bbv52021/docker-port-manager.git
-    image: docker-port-manager:latest
+    image: ghcr.io/bbv52021/docker-port-manager:latest
     container_name: docker-port-manager
     restart: unless-stopped
     network_mode: host
